@@ -1,76 +1,35 @@
-@app.route('/get-conversation-history', methods=['GET'])
-def get_conversation_history():
-    """
-    Retrieve the top 5 latest conversation history records for the user's IP.
-    """
-    connection = None
-    cursor = None
+def askdatapromptgenerator(input_text: str) -> str:
+    filepath = os.path.join(str(os.getenv('LOCALPATH')), "Intellibase", "prompt_querygenerator.txt")
     try:
-        logger.info("Received get-conversation-history request")
-        user_id = request.remote_addr  # Use client IP as user_id
-        schema_name = "GENAI_EARNING_CALL_1_9N3UKNZHQ3I2CXHDJNQ9EXV58_RT"
-        table_name = "TREASURY_AI_CONVERSATION_HISTORY"
-
-        # Get database connection
-        connection = get_db_connection()
-        if not connection:
-            logger.error("Failed to get database connection for conversation history")
-            raise AppError(
-                ErrorCategory.DATABASE,
-                "Failed to retrieve conversation history",
-                status_code=500
-            )
-
-        cursor = connection.cursor()
-
-        # Query to fetch top 5 latest conversations
-        query = f"""
-            SELECT TOP 5 ID, USER_ID, CONVERSATION_DATA, TIMESTAMP
-            FROM "{schema_name}"."{table_name}"
-            WHERE USER_ID = ?
-            ORDER BY TIMESTAMP DESC
-        """
-        cursor.execute(query, (user_id,))
-        results = cursor.fetchall()
-
-        conversations = []
-        for row in results:
-            conversation_id, user_id, conversation_data, timestamp = row
-            try:
-                data = json.loads(conversation_data)
-                # Extract query and a response snippet (first 50 chars)
-                query = data.get('query', 'N/A')
-                response = data.get('response', 'N/A')
-                response_snippet = response[:50] + ('...' if len(response) > 50 else '')
-                conversations.append({
-                    'query': query,
-                    'response_snippet': response_snippet,
-                    'timestamp': timestamp.isoformat()
-                })
-            except json.JSONDecodeError:
-                logger.warning(f"Invalid JSON in conversation ID {conversation_id}")
-                continue
-
-        logger.info(f"Retrieved {len(conversations)} conversation records for user {user_id}")
-        return jsonify({
-            "success": True,
-            "conversations": conversations,
-            "count": len(conversations),
-            "message": f"Retrieved {len(conversations)} conversation records"
-        }), 200
-
-    except AppError:
-        raise
+        existing_text = read_template(filepath)
+        combined_text = f"{existing_text}{input_text}. Provide only the query without any explanations and information."
+        logger.debug(f"Generated query prompt for: {input_text}")
+        return combined_text
     except Exception as e:
-        logger.error(f"Error in get-conversation-history endpoint: {str(e)}\n{traceback.format_exc()}")
-        raise AppError(
-            ErrorCategory.DATABASE,
-            "Failed to retrieve conversation history",
-            status_code=500,
-            details={"error": str(e)}
-        )
-    finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            release_db_connection(connection)
+        logger.error(f"Query prompt generation failed: {str(e)}")
+        raise
+
+
+def read_template(filepath: str) -> str:
+    """Cached template file reading"""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        logger.error(f"Failed to read template {filepath}: {str(e)}")
+        raise
+
+
+ "SQL_QUERY_GENERATOR_RULES": {
+    "CRITICAL_INSTRUCTION": "YOU MUST CHECK AND APPLY EVERY SINGLE RULE BELOW. DO NOT SKIP ANY RULE. EACH RULE IS MANDATORY.",
+    
+    "TARGET_TABLE": {
+      "schema": "GENAI_EARNING_CALL_1_9N3UKNZHQ3I2CXHDJNQ9EXV58_RT",
+      "table": "TREASURY_DANS_FACT_TABLE"
+    },
+    
+    "OUTPUT_REQUIREMENT": {
+      "RULE_ID": "R001",
+      "RULE": "MANDATORY: Provide ONLY the SQL query as output. NO explanations, NO additional text, NO comments.
+      ALWAYS ADD THIS CONDITION TO GENERATED SQL "WHERE GLB_FINAL_COUNTRY_NAME IN (select distinct VALUE from GENAI_EARNING_CALL_1_9N3UKNZHQ3I2CXHDJNQ9EXV58_RT.TREASURY_AI_DAC where USER_ID = '10.140.102.74')""
+    }
