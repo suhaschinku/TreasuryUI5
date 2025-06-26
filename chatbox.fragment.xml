@@ -1,0 +1,66 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:core="sap.ui.core"
+    xmlns:u="sap.ui.unified"
+    xmlns:app="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1">
+
+    <VBox class="ChatBox dasTextAreaInput">
+        <!-- Dropdown and Search Box -->
+        <HBox class="sapUiSmallMarginBottom" alignItems="Center">
+            <ComboBox
+                id="searchFilterDropdown"
+                items="{chatModel>/searchFilters}"
+                placeholder="Select Filter"
+                selectionChange="onDropdownChange"
+                width="30%">
+                <core:Item key="{chatModel>key}" text="{chatModel>text}"/>
+            </ComboBox>
+            <Input
+                id="searchInput"
+                placeholder="Search..."
+                value="{chatModel>/searchQuery}"
+                liveChange="onSearch"
+                width="65%"
+                class="sapUiTinyMarginBegin"/>
+        </HBox>
+
+        <!-- Existing Chat Box -->
+        <FlexBox id="ChatBotresult" height="5rem">
+            <TextArea
+                id="chatFeedInput"
+                width="96%"
+                height="500px"
+                class="chattextarea"
+                liveChange="userlivechange"
+                value="{chatModel>/userMessage}"
+                enabled="{= !${chatModel>/busyIndicator} }"
+                rows="1"
+                growingMaxLines="23"
+                placeholder="{chatModel>/placeHolder}"
+                growing="true">
+                <layoutData>
+                    <FlexItemData growFactor="1"/>
+                </layoutData>
+            </TextArea>
+        </FlexBox>
+
+        <FlexBox
+            id="chatBusyIndicator1"
+            visible="{chatModel>/busyIndicator}"
+            justifyContent="Center"
+            alignItems="Center"
+            class="busyBox">
+        </FlexBox>
+
+        <FlexBox
+            id="btncontrolls"
+            justifyContent="Start"
+            alignItems="Start"
+            class="busyBox">
+            <Button
+                text="Ask FinSight"
+                press="onUserChat"/>
+        </FlexBox>
+    </VBox>
+</core:FragmentDefinition>
